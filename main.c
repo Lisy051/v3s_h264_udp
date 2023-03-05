@@ -102,8 +102,8 @@ int main(int argc, char **argv) {
 		dlog_cleanup(cam_qbuf(), DLOG_CRIT "Error: cam_qbuf() failed\n");
 		rt_timer_stop();
 		double elapsed = rt_timer_elapsed();
-		dlog("\nInfo: captured %d frames in %.2fs; FPS = %.1f\n",
-			j, elapsed, 1 / elapsed);
+		//dlog("\nInfo: captured %d frames in %.2fs; FPS = %.1f\n",
+		//	j, elapsed, 1 / elapsed);
 	}
 
 cleanup:
