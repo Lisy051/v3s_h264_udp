@@ -33,7 +33,7 @@
 
 void usage(char *argv0) {
 	dlog(DLOG_WARN
-		"Usage: %s [width] [height] [FPS] [ip] [port]\n"
+		"Usage: %s [width] [height] [FPS] [bitrate]\n"
 		"Supported formats: 640x480, 1280x720, 1920x1080\n"
 		"All formats support 30FPS; 640x480 also supports 60FPS.\n"
 		, argv0);
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 #endif
 	int ret = 0;
 
-	if (argc != 6) {
+	if (argc < 4) {
 		usage(argv[0]);
 		return 0;
 	}
@@ -53,27 +53,15 @@ int main(int argc, char **argv) {
 	int width = atoi(argv[1]);
 	int height = atoi(argv[2]);
 	int fps = atoi(argv[3]);
-
-	int socket_descriptor; //套接口描述字
-	struct sockaddr_in address;//处理网络通信的地址
-	bzero(&address,sizeof(address));
-	address.sin_family=AF_INET;
-	address.sin_addr.s_addr=inet_addr(argv[4]);	//ip
-	address.sin_port=htons(atoi(argv[5]));
-	dlog("\nInfo: inet_ntoa ip = %s port = %d\n",
-		inet_ntoa(address.sin_addr),atoi(argv[5]));
-	//创建一个 UDP socket
-	socket_descriptor=socket(AF_INET,SOCK_DGRAM,0);//IPV4  SOCK_DGRAM 数据报套接字（UDP协议）
-	if(socket_descriptor == -1){
-		dlog(DLOG_CRIT "Error: socket\n");
-		return 0;
-	}
+	int bitrate = 1 * 1024 * 1024;
+	if (argc == 5)
+		bitrate = atoi(argv[4]);
 
 	if ((width == 640 && height == 480) ||
 		(width == 1280 && height == 720) ||
 		(width == 1920 && height == 1080)) {
 
-		dlog_cleanup(h264_init(width, height, fps), DLOG_CRIT "Error: h264_init() failed\n");
+		dlog_cleanup(h264_init(width, height, fps, bitrate), DLOG_CRIT "Error: h264_init() failed\n");
 		dlog_cleanup(cam_open(), DLOG_CRIT "Error: cam_open() failed\n");
 		dlog_cleanup(cam_init(width, height, G_V4L2_PIX_FMT, fps),
 					DLOG_CRIT "Error: cam_init() failed\n");
@@ -96,7 +84,7 @@ int main(int argc, char **argv) {
 		buffer_t *buf = cam_get_buf(j);
 
 		// Encode frame
-		dlog_cleanup(h264_encode(buf->addrPhyY, buf->addrPhyC, socket_descriptor, address), DLOG_CRIT "Error: h264_encode() failed\n");
+		dlog_cleanup(h264_encode(buf->addrPhyY, buf->addrPhyC), DLOG_CRIT "Error: h264_encode() failed\n");
 		
 		// Queue the recently dequeued buffer back to the device
 		dlog_cleanup(cam_qbuf(), DLOG_CRIT "Error: cam_qbuf() failed\n");

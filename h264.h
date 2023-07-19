@@ -10,15 +10,9 @@
 #include "conf.h"
 #include "util.h"
 
-//add
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+int h264_init(int width, int height, int fps, int bitrate);
 
-int h264_init(int width, int height, int fps);
-
-int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC, int socket_descriptor, struct sockaddr_in address);
+int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC);
 void h264_deinit();
 
 #endif

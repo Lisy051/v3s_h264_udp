@@ -10,12 +10,6 @@
 #include "util.h"
 #include "conf.h"
 
-//add
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
 static VideoEncoder *gVideoEnc = NULL;
 static VencBaseConfig baseConfig;
 static int g_width = G_WIDTH;
@@ -23,7 +17,7 @@ static int g_height = G_HEIGHT;
 static int g_pix_fmt = G_CEDARC_PIX_FMT;
 static int g_fps = G_FPS;
 
-int h264_init(int width, int height, int fps) {
+int h264_init(int width, int height, int fps, int bitrate) {
 
 	g_width = width;
 	g_height = height;
@@ -31,7 +25,7 @@ int h264_init(int width, int height, int fps) {
 
 	VencH264Param h264Param = {
 		.bEntropyCodingCABAC = 1,
-		.nBitrate = 0.4 * 1024 * 1024,
+		.nBitrate = bitrate,
 		.nFramerate = g_fps,
 		.nCodingMode = VENC_FRAME_CODING,	//VENC_FIELD_CODING         VENC_FRAME_CODING
 		.nMaxKeyInterval = g_fps,
@@ -84,7 +78,7 @@ int h264_init(int width, int height, int fps) {
 	return 0;
 }
 
-int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC, int socket_descriptor, struct sockaddr_in address) {
+int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 	// Prepare buffers
 	VencInputBuffer inputBuffer;
 	VencOutputBuffer outputBuffer;
@@ -102,7 +96,6 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC, int socket_des
 		dlog("Error: VideoEncodeOneFrame() failed %d\n",ret);
 		return -1;
 	}
-
 	// Mark buffer as used, and get output H.264 bitstream
 	AlreadyUsedInputBuffer(gVideoEnc, &inputBuffer);
 	GetOneBitstreamFrame(gVideoEnc, &outputBuffer);
@@ -113,24 +106,23 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC, int socket_des
 			VencHeaderData sps_pps_data;
 			// Write SPS, PPS NAL units
 			VideoEncGetParameter(gVideoEnc, VENC_IndexParamH264SPSPPS, &sps_pps_data);
-			ret = sendto(socket_descriptor, sps_pps_data.pBuffer, sps_pps_data.nLength, 0, (struct sockaddr *)&address, sizeof(address));
-			if(ret < 0){
+			ret = write(STDOUT_FILENO, sps_pps_data.pBuffer, sps_pps_data.nLength);
+			if(ret != sps_pps_data.nLength){
 				dlog("Error: sendto sps_pps_data failed %d %d\n",ret,sps_pps_data.nLength);
 			}
 		}
-		ret = sendto(socket_descriptor, outputBuffer.pData0, outputBuffer.nSize0, 0, (struct sockaddr *)&address, sizeof(address));
-		if(ret < 0){
-			("Error: sendto pData0 failed %d %d\n",ret,outputBuffer.nSize0);
+		ret = write(STDOUT_FILENO, outputBuffer.pData0, outputBuffer.nSize0);
+		if(ret != outputBuffer.nSize0){
+			dlog("Error: sendto pData0 failed %d %d\n",ret,outputBuffer.nSize0);
 		}
 	}
 		
 	if (outputBuffer.nSize1 > 0){
-		ret = sendto(socket_descriptor, outputBuffer.pData1, outputBuffer.nSize1, 0, (struct sockaddr *)&address, sizeof(address));
-		if(ret < 0){
+		ret = write(STDOUT_FILENO, outputBuffer.pData1, outputBuffer.nSize1);
+		if(ret != outputBuffer.nSize1){
 			dlog("Error: sendto pData1 failed %d %d\n",ret,outputBuffer.nSize1);
 		}
 	}
-
 	FreeOneBitStreamFrame(gVideoEnc, &outputBuffer);
 	return 0;
 }
