@@ -24,15 +24,15 @@ int h264_init(int width, int height, int fps, int bitrate) {
 	g_fps = fps;
 
 	VencH264Param h264Param = {
-		.bEntropyCodingCABAC = 1,
+		.bEntropyCodingCABAC = 0,	/* 0:CAVLC 1:CABAC*/
 		.nBitrate = bitrate,
 		.nFramerate = g_fps,
-		.nCodingMode = VENC_FRAME_CODING,	//VENC_FIELD_CODING         VENC_FRAME_CODING
-		.nMaxKeyInterval = g_fps,
-		.sProfileLevel.nProfile = VENC_H264ProfileMain,//VENC_H264ProfileBaseline	VENC_H264ProfileMain   VENC_H264ProfileHigh
-		.sProfileLevel.nLevel = VENC_H264Level32,
+		.nCodingMode = VENC_FRAME_CODING,	// VENC_FIELD_CODING         VENC_FRAME_CODING
+		.nMaxKeyInterval = g_fps/10,		// 100ms
+		.sProfileLevel.nProfile = VENC_H264ProfileBaseline,//VENC_H264ProfileBaseline	VENC_H264ProfileMain   VENC_H264ProfileHigh
+		.sProfileLevel.nLevel = VENC_H264Level4,
 		.sQPRange.nMinqp = 20,
-		.sQPRange.nMaxqp = 50,
+		.sQPRange.nMaxqp = 51,
 	};
 
 	CLEAR(baseConfig);
@@ -62,7 +62,7 @@ int h264_init(int width, int height, int fps, int bitrate) {
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamIfilter, &value);
 		value = 0;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamRotation, &value);
-		value = 0;
+		value = 1;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamFastEnc, &value);
 		value = 0;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamSetPSkip, &value);
@@ -123,6 +123,7 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 			dlog("Error: sendto pData1 failed %d %d\n",ret,outputBuffer.nSize1);
 		}
 	}
+	fflush(stdout);
 	FreeOneBitStreamFrame(gVideoEnc, &outputBuffer);
 	return 0;
 }
