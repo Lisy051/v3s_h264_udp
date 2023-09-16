@@ -60,7 +60,7 @@ int h264_init(int width, int height, int fps, int bitrate) {
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264Param, &h264Param);
 		int value = 0;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamIfilter, &value);
-		value = 0;
+		value = 180;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamRotation, &value);
 		value = 1;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamFastEnc, &value);
