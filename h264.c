@@ -28,11 +28,11 @@ int h264_init(int width, int height, int fps, int bitrate) {
 		.nBitrate = bitrate,
 		.nFramerate = g_fps,
 		.nCodingMode = VENC_FRAME_CODING,	// VENC_FIELD_CODING         VENC_FRAME_CODING
-		.nMaxKeyInterval = g_fps/10,		// 100ms
+		.nMaxKeyInterval = g_fps,		// 1000ms
 		.sProfileLevel.nProfile = VENC_H264ProfileBaseline,//VENC_H264ProfileBaseline	VENC_H264ProfileMain   VENC_H264ProfileHigh
-		.sProfileLevel.nLevel = VENC_H264Level4,
-		.sQPRange.nMinqp = 20,
-		.sQPRange.nMaxqp = 51,
+		.sProfileLevel.nLevel = VENC_H264Level32,
+		.sQPRange.nMinqp = 10,
+		.sQPRange.nMaxqp = 35,
 	};
 
 	CLEAR(baseConfig);
@@ -58,7 +58,7 @@ int h264_init(int width, int height, int fps, int bitrate) {
 
 	{
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264Param, &h264Param);
-		int value = 0;
+		int value = 1;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamIfilter, &value);
 		value = 180;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamRotation, &value);
@@ -68,7 +68,7 @@ int h264_init(int width, int height, int fps, int bitrate) {
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamSetPSkip, &value);
 		VencCyclicIntraRefresh sIntraRefresh;
 		sIntraRefresh.bEnable = 1;
-    	sIntraRefresh.nBlockNumber = g_fps/2;
+    	sIntraRefresh.nBlockNumber = g_fps/10;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264CyclicIntraRefresh, &sIntraRefresh);
 	}
 	VideoEncInit(gVideoEnc, &baseConfig);
