@@ -33,8 +33,8 @@
 
 void usage(char *argv0) {
 	dlog(DLOG_WARN
-		"Usage: %s [width] [height] [FPS] [bitrate]\n"
-		"Supported formats: 640x480, 1280x720, 1920x1080\n"
+		"Usage: %s [camera] [width] [height] [FPS] [bitrate]\n"
+		"Supported formats: 320x240, 640x480, 1280x720, 1920x1080\n"
 		"All formats support 30FPS; 640x480 also supports 60FPS.\n"
 		, argv0);
 }
@@ -45,19 +45,20 @@ int main(int argc, char **argv) {
 #endif
 	int ret = 0;
 
-	if (argc < 4) {
+	if (argc < 5) {
 		usage(argv[0]);
 		return 0;
 	}
 
-	int width = atoi(argv[1]);
-	int height = atoi(argv[2]);
-	int fps = atoi(argv[3]);
+	int width = atoi(argv[2]);
+	int height = atoi(argv[3]);
+	int fps = atoi(argv[4]);
 	int bitrate = 1 * 1024 * 1024;
-	if (argc == 5)
-		bitrate = atoi(argv[4]);
+	if (argc >= 6)
+		bitrate = atoi(argv[5]);
 
-	if ((width == 640 && height == 480) ||
+	if ((width == 320 && height == 240) ||
+		(width == 640 && height == 480) ||
 		(width == 1280 && height == 720) ||
 		(width == 1920 && height == 1080)) {
 

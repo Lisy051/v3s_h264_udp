@@ -63,7 +63,7 @@ int cam_open() {
 // For more info, see
 // https://www.kernel.org/doc/html/latest/userspace-api/media/mediactl/media-controller.html
 //
-static int cam_media_init() {
+static int cam_media_init(char *camera) {
 	int ret = 0;
 	struct media_v2_entity *mve = NULL;
 	struct media_v2_pad *mvp = NULL;
@@ -99,15 +99,15 @@ static int cam_media_init() {
 	int entity_id = -1, subdev_pad = -1;
 
 	for (int i=0; i<mvt.num_entities; i++) {
-		if (strcmp(G_SUBDEV_ENTITY_NAME, mve[i].name) == 0) {
+		if (strcmp(camera, mve[i].name) == 0) {
 			entity_id = mve[i].id;
-			dlog(DLOG_DEBUG "Debug: %s: subdev entity id = %d\n", G_SUBDEV_ENTITY_NAME,
+			dlog(DLOG_DEBUG "Debug: %s: subdev entity id = %d\n", camera,
 				 entity_id);
 		}
 	}
 
 	if (entity_id == -1) {
-		dlog(DLOG_CRIT "Error: media entity %s not found\n", G_SUBDEV_ENTITY_NAME);
+		dlog(DLOG_CRIT "Error: media entity %s not found\n", camera);
 		ret = -1;
 		goto cleanup;
 	}
@@ -115,12 +115,12 @@ static int cam_media_init() {
 	for (int i=0; i<mvt.num_pads; i++) {
 		if (mvp[i].entity_id == entity_id) {
 			subdev_pad = mvp[i].index;
-			dlog(DLOG_DEBUG "Debug: %s: subdev pad = %d\n", G_SUBDEV_ENTITY_NAME, subdev_pad);
+			dlog(DLOG_DEBUG "Debug: %s: subdev pad = %d\n", camera, subdev_pad);
 		}
 	}
 
 	if (subdev_pad == -1) {
-		dlog(DLOG_CRIT "Error: no subdev pad found for %s\n", G_SUBDEV_ENTITY_NAME);
+		dlog(DLOG_CRIT "Error: no subdev pad found for %s\n", camera);
 		ret = -1;
 		goto cleanup;
 	}
@@ -155,7 +155,7 @@ static int cam_media_init() {
 					"VIDIOC_SUBDEV_S_FMT");
 
 	dlog("Info: %s: subdev format set to: %dx%d, media bus format code = 0x%x\n",
-		G_SUBDEV_ENTITY_NAME, sfmt.format.width, sfmt.format.height, sfmt.format.code);
+		camera, sfmt.format.width, sfmt.format.height, sfmt.format.code);
 
 	// Set frame rate
 
@@ -169,7 +169,7 @@ static int cam_media_init() {
 					"VIDIOC_SUBDEV_S_FRAME_INTERVAL");
 	
 	dlog("Info: %s: frame rate: requested for %d; image sensor accepted %d\n",
-		G_SUBDEV_ENTITY_NAME, g_fps, ival.interval.denominator);
+		camera, g_fps, ival.interval.denominator);
 
 cleanup:
 	if (sfd >= 0) {
@@ -187,13 +187,13 @@ cleanup:
 	return ret;
 }
 
-int cam_init(unsigned int width, unsigned int height, unsigned int pixfmt, unsigned int fps) {
+int cam_init(char *camera, unsigned int width, unsigned int height, unsigned int pixfmt, unsigned int fps) {
 
 	g_width = width;
 	g_height = height;
 	g_fps = fps;
 
-	if (cam_media_init() < 0) {
+	if (cam_media_init(camera) < 0) {
 		dlog(DLOG_CRIT "Error: cam_media_init() failed\n");
 		return -1;
 	}
