@@ -82,6 +82,7 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 	// Prepare buffers
 	VencInputBuffer inputBuffer;
 	VencOutputBuffer outputBuffer;
+	const char AUD[6] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xF0};
 	int ret = 0;
 	CLEAR(inputBuffer);
 	CLEAR(outputBuffer);
@@ -123,6 +124,7 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 			dlog("Error: sendto pData1 failed %d %d\n",ret,outputBuffer.nSize1);
 		}
 	}
+	write(STDOUT_FILENO, AUD, 6);
 	fflush(stdout);
 	FreeOneBitStreamFrame(gVideoEnc, &outputBuffer);
 	return 0;
