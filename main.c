@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 	int height = atoi(argv[3]);
 	int fps = atoi(argv[4]);
 	int bitrate = 1 * 1024 * 1024;
-	if (argc >= 6)
+	if (argc == 6)
 		bitrate = atoi(argv[5]);
 
 	if ((width == 320 && height == 240) ||
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
 		dlog_cleanup(h264_init(width, height, fps, bitrate), DLOG_CRIT "Error: h264_init() failed\n");
 		dlog_cleanup(cam_open(), DLOG_CRIT "Error: cam_open() failed\n");
-		dlog_cleanup(cam_init(width, height, G_V4L2_PIX_FMT, fps),
+		dlog_cleanup(cam_init(argv[1], width, height, G_V4L2_PIX_FMT, fps),
 					DLOG_CRIT "Error: cam_init() failed\n");
 	}
 	else {
