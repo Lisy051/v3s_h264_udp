@@ -38,7 +38,7 @@ void Config_Reset(void)
     cJSON_AddItemToObject(sub_encode, "MaxKeyInterval", cJSON_CreateNumber(30));
     cJSON_AddItemToObject(sub_encode, "BlockNumber", cJSON_CreateNumber(3));
     cJSON_AddItemToObject(sub_encode, "CodingMode", cJSON_CreateNumber(0));
-    cJSON_AddItemToObject(sub_encode, "EntropyCodingCABAC", cJSON_CreateNumber(30));
+    cJSON_AddItemToObject(sub_encode, "EntropyCodingCABAC", cJSON_CreateNumber(0));
     cJSON_AddItemToObject(sub_encode, "Profile", cJSON_CreateNumber(66));
     cJSON_AddItemToObject(sub_encode, "Level", cJSON_CreateNumber(32));
 
