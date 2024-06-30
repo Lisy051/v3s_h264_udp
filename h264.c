@@ -1,80 +1,69 @@
 
 #include <stdio.h>
 #include <unistd.h>
-
+#include <string.h>
+#include <linux/videodev2.h>
 #include <vencoder.h>
 #include <veInterface.h>
 #include <memoryAdapter.h>
-
-#include "cam.h"
-#include "util.h"
-#include "conf.h"
+#include "config.h"
+#include "output.h"
 
 static VideoEncoder *gVideoEnc = NULL;
 static VencBaseConfig baseConfig;
-static int g_width = G_WIDTH;
-static int g_height = G_HEIGHT;
-static int g_pix_fmt = G_CEDARC_PIX_FMT;
-static int g_fps = G_FPS;
 
-int h264_init(int width, int height, int fps, int bitrate) {
-
-	g_width = width;
-	g_height = height;
-	g_fps = fps;
-
+int h264_init()
+{
 	VencH264Param h264Param = {
-		.bEntropyCodingCABAC = 0,	/* 0:CAVLC 1:CABAC*/
-		.nBitrate = bitrate,
-		.nFramerate = g_fps,
-		.nCodingMode = VENC_FRAME_CODING,	// VENC_FIELD_CODING         VENC_FRAME_CODING
-		.nMaxKeyInterval = g_fps,		// 1000ms
-		.sProfileLevel.nProfile = VENC_H264ProfileBaseline,//VENC_H264ProfileBaseline	VENC_H264ProfileMain   VENC_H264ProfileHigh
-		.sProfileLevel.nLevel = VENC_H264Level32,
-		.sQPRange.nMinqp = 10,
-		.sQPRange.nMaxqp = 35,
+		.bEntropyCodingCABAC = encode_config.h264_EntropyCodingCABAC,
+		.nBitrate = encode_config.h264_Bitrate,
+		.nFramerate = camera_config.fps,
+		.nCodingMode = encode_config.h264_CodingMode,
+		.nMaxKeyInterval = encode_config.h264_MaxKeyInterval,
+		.sProfileLevel.nProfile = encode_config.h264_Profile,
+		.sProfileLevel.nLevel = encode_config.h264_Level,
+		.sQPRange.nMinqp = encode_config.h264_Minqp,
+		.sQPRange.nMaxqp = encode_config.h264_Maxqp,
 	};
 
-	CLEAR(baseConfig);
+	memset(&baseConfig, 0, sizeof(baseConfig));
 	baseConfig.memops = MemAdapterGetOpsS();
 	if (baseConfig.memops == NULL) {
-		dlog(DLOG_CRIT "Error: MemAdapterGetOpsS() failed\n");
+		fprintf(stderr, "Error: MemAdapterGetOpsS() failed\n");
 		return -1;
 	}
 	CdcMemOpen(baseConfig.memops);
 
-	baseConfig.nInputWidth = g_width;
-	baseConfig.nInputHeight = g_height;
-	baseConfig.nStride = g_width;
-	baseConfig.nDstWidth = g_width;
-	baseConfig.nDstHeight = g_height;
-	baseConfig.eInputFormat = g_pix_fmt;
+	baseConfig.nInputWidth = camera_config.width;
+	baseConfig.nInputHeight = camera_config.height;
+	baseConfig.nStride = camera_config.width;
+	baseConfig.nDstWidth = camera_config.width;
+	baseConfig.nDstHeight = camera_config.height;
+	baseConfig.eInputFormat = VENC_PIXEL_YUV420SP;
 
 	gVideoEnc = VideoEncCreate(VENC_CODEC_H264);
 	if (gVideoEnc == NULL) {
-		dlog(DLOG_CRIT "Error: VideoEncCreate() failed\n");
+		fprintf(stderr, "Error: VideoEncCreate() failed\n");
 		return -1;
 	}
 
+	VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264Param, &h264Param);
+	int value = 1;
+	VideoEncSetParameter(gVideoEnc, VENC_IndexParamIfilter, &value);
+	VideoEncSetParameter(gVideoEnc, VENC_IndexParamFastEnc, &value);
+	VideoEncSetParameter(gVideoEnc, VENC_IndexParamRotation, &camera_config.rotation);
+	value = 0;
+	VideoEncSetParameter(gVideoEnc, VENC_IndexParamSetPSkip, &value);
+
+	if (encode_config.h264_BlockNumber > 0)
 	{
-		VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264Param, &h264Param);
-		int value = 1;
-		VideoEncSetParameter(gVideoEnc, VENC_IndexParamIfilter, &value);
-		value = 180;
-		VideoEncSetParameter(gVideoEnc, VENC_IndexParamRotation, &value);
-		value = 1;
-		VideoEncSetParameter(gVideoEnc, VENC_IndexParamFastEnc, &value);
-		value = 0;
-		VideoEncSetParameter(gVideoEnc, VENC_IndexParamSetPSkip, &value);
 		VencCyclicIntraRefresh sIntraRefresh;
 		sIntraRefresh.bEnable = 1;
-    	sIntraRefresh.nBlockNumber = g_fps/10;
+		sIntraRefresh.nBlockNumber = encode_config.h264_BlockNumber;
 		VideoEncSetParameter(gVideoEnc, VENC_IndexParamH264CyclicIntraRefresh, &sIntraRefresh);
 	}
+
 	VideoEncInit(gVideoEnc, &baseConfig);
-
-	dlog(DLOG_INFO "Info: h264 encocder init OK\n");
-
 	return 0;
 }
 
@@ -82,10 +71,10 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 	// Prepare buffers
 	VencInputBuffer inputBuffer;
 	VencOutputBuffer outputBuffer;
-	const char AUD[6] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xF0};
+	char AUD[6] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xF0};
 	int ret = 0;
-	CLEAR(inputBuffer);
-	CLEAR(outputBuffer);
+	memset(&inputBuffer, 0, sizeof(inputBuffer));
+	memset(&outputBuffer, 0, sizeof(outputBuffer));
 	// Pass pre-allocated buffer (from V4L2) to CedarVE
 	// No need to use AllocInputBuffer() and copy data unnecessarily
 	inputBuffer.pAddrPhyY = addrPhyY;
@@ -94,7 +83,7 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 	AddOneInputBuffer(gVideoEnc, &inputBuffer);
 	ret = VideoEncodeOneFrame(gVideoEnc);
 	if (ret != VENC_RESULT_OK) {
-		dlog("Error: VideoEncodeOneFrame() failed %d\n",ret);
+		fprintf(stderr, "Error: VideoEncodeOneFrame() failed %d\n",ret);
 		return -1;
 	}
 	// Mark buffer as used, and get output H.264 bitstream
@@ -107,25 +96,15 @@ int h264_encode(unsigned char *addrPhyY, unsigned char *addrPhyC) {
 			VencHeaderData sps_pps_data;
 			// Write SPS, PPS NAL units
 			VideoEncGetParameter(gVideoEnc, VENC_IndexParamH264SPSPPS, &sps_pps_data);
-			ret = write(STDOUT_FILENO, sps_pps_data.pBuffer, sps_pps_data.nLength);
-			if(ret != sps_pps_data.nLength){
-				dlog("Error: sendto sps_pps_data failed %d %d\n",ret,sps_pps_data.nLength);
-			}
+			Output(sps_pps_data.pBuffer, sps_pps_data.nLength);
 		}
-		ret = write(STDOUT_FILENO, outputBuffer.pData0, outputBuffer.nSize0);
-		if(ret != outputBuffer.nSize0){
-			dlog("Error: sendto pData0 failed %d %d\n",ret,outputBuffer.nSize0);
-		}
+		Output(outputBuffer.pData0, outputBuffer.nSize0);
 	}
 		
 	if (outputBuffer.nSize1 > 0){
-		ret = write(STDOUT_FILENO, outputBuffer.pData1, outputBuffer.nSize1);
-		if(ret != outputBuffer.nSize1){
-			dlog("Error: sendto pData1 failed %d %d\n",ret,outputBuffer.nSize1);
-		}
+		Output(outputBuffer.pData1, outputBuffer.nSize1);
 	}
-	write(STDOUT_FILENO, AUD, 6);
-	fflush(stdout);
+	Output(AUD, 6);
 	FreeOneBitStreamFrame(gVideoEnc, &outputBuffer);
 	return 0;
 }

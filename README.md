@@ -1,5 +1,5 @@
 基于[Unturned3/h264enc_demo](https://github.com/Unturned3/h264enc_demo)修改的udp传输h264 demo
 
-pi端发送： main 1280 720 30 192.168.0.101 5600
+摄像头及编码器配置文件存储在 `/etc/camera_config.json` 文件中。
 
-电脑端接收：ffplay -fflags nobuffer udp://192.168.0.101:5600  或者  mplayer -fps 200 -demuxer h264es -nocache udp://192.168.0.101:5600
+默认情况下会将h264视频文件保存到 `/media` 文件夹中。
