@@ -32,6 +32,8 @@ typedef struct
     bool enable_pipe;
     bool enable_file;
 
+    int pack_len;
+
     int udp_port;
     char udp_addr[16];
     char file_dir[255];

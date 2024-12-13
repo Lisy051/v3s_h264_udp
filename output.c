@@ -69,11 +69,11 @@ int Output(char *buf, int len)
     {
         int data_len = len;
         char *pdata = buf;
-        while (data_len > 1024)
+        while (data_len > output_contig.pack_len)
         {
-            sendto(udp_out, pdata, 1024, 0, (struct sockaddr *)&address, sizeof(address));
-            data_len -= 1024;
-            pdata += 1024;
+            sendto(udp_out, pdata, output_contig.pack_len, 0, (struct sockaddr *)&address, sizeof(address));
+            data_len -= output_contig.pack_len;
+            pdata += output_contig.pack_len;
         }
         if (data_len > 0)
         {

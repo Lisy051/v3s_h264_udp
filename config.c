@@ -40,13 +40,14 @@ void Config_Reset(void)
     cJSON_AddItemToObject(sub_encode, "CodingMode", cJSON_CreateNumber(0));
     cJSON_AddItemToObject(sub_encode, "EntropyCodingCABAC", cJSON_CreateNumber(0));
     cJSON_AddItemToObject(sub_encode, "Profile", cJSON_CreateNumber(0));
-    cJSON_AddItemToObject(sub_encode, "Level", cJSON_CreateString(10));
+    cJSON_AddItemToObject(sub_encode, "Level", cJSON_CreateNumber(10));
 
     // 重置输出配置
     cJSON *sub_output = cJSON_CreateObject();
     cJSON_AddItemToObject(sub_output, "enable_udp", cJSON_CreateBool(0));
     cJSON_AddItemToObject(sub_output, "enable_file", cJSON_CreateBool(1));
     cJSON_AddItemToObject(sub_output, "enable_pipe", cJSON_CreateBool(0));
+    cJSON_AddItemToObject(sub_output, "pack_len", cJSON_CreateNumber(1024));
     cJSON_AddItemToObject(sub_output, "udp_port", cJSON_CreateNumber(5600));
     cJSON_AddItemToObject(sub_output, "udp_addr", cJSON_CreateString("127.0.0.1"));
     cJSON_AddItemToObject(sub_output, "file_dir", cJSON_CreateString("/media/"));
@@ -327,6 +328,16 @@ void Get_Output_Config(cJSON *root)
     else
     {
         fprintf(stderr, "enable_pipe not find\n");
+        Config_Reset();
+    }
+    item = cJSON_GetObjectItem(sub_output, "pack_len");
+    if (item)
+    {
+        output_contig.pack_len = item->valueint;
+    }
+    else
+    {
+        fprintf(stderr, "pack_len not find\n");
         Config_Reset();
     }
     item = cJSON_GetObjectItem(sub_output, "udp_port");
