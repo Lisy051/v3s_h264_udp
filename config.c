@@ -25,22 +25,22 @@ void Config_Reset(void)
     // 重置摄像头参数
     cJSON *sub_camera = cJSON_CreateObject();
     cJSON_AddItemToObject(sub_camera, "Sensor", cJSON_CreateString("ov5640 0-003c"));
-    cJSON_AddItemToObject(sub_camera, "Width", cJSON_CreateNumber(640));
-    cJSON_AddItemToObject(sub_camera, "Height", cJSON_CreateNumber(480));
+    cJSON_AddItemToObject(sub_camera, "Width", cJSON_CreateNumber(1280));
+    cJSON_AddItemToObject(sub_camera, "Height", cJSON_CreateNumber(720));
     cJSON_AddItemToObject(sub_camera, "FPS", cJSON_CreateNumber(30));
     cJSON_AddItemToObject(sub_camera, "Rotation", cJSON_CreateNumber(0));
 
     // 重置h264编码器参数
     cJSON *sub_encode = cJSON_CreateObject();
-    cJSON_AddItemToObject(sub_encode, "Bitrate", cJSON_CreateNumber(1024*1024));
-    cJSON_AddItemToObject(sub_encode, "Maxqp", cJSON_CreateNumber(40));
-    cJSON_AddItemToObject(sub_encode, "Minqp", cJSON_CreateNumber(20));
-    cJSON_AddItemToObject(sub_encode, "MaxKeyInterval", cJSON_CreateNumber(30));
-    cJSON_AddItemToObject(sub_encode, "BlockNumber", cJSON_CreateNumber(3));
+    cJSON_AddItemToObject(sub_encode, "Bitrate", cJSON_CreateNumber(1 * 1024 * 1024));
+    cJSON_AddItemToObject(sub_encode, "Maxqp", cJSON_CreateNumber(51));
+    cJSON_AddItemToObject(sub_encode, "Minqp", cJSON_CreateNumber(39));
+    cJSON_AddItemToObject(sub_encode, "MaxKeyInterval", cJSON_CreateNumber(300));
+    cJSON_AddItemToObject(sub_encode, "BlockNumber", cJSON_CreateNumber(30));
     cJSON_AddItemToObject(sub_encode, "CodingMode", cJSON_CreateNumber(0));
     cJSON_AddItemToObject(sub_encode, "EntropyCodingCABAC", cJSON_CreateNumber(0));
-    cJSON_AddItemToObject(sub_encode, "Profile", cJSON_CreateNumber(66));
-    cJSON_AddItemToObject(sub_encode, "Level", cJSON_CreateNumber(32));
+    cJSON_AddItemToObject(sub_encode, "Profile", cJSON_CreateNumber(0));
+    cJSON_AddItemToObject(sub_encode, "Level", cJSON_CreateString(10));
 
     // 重置输出配置
     cJSON *sub_output = cJSON_CreateObject();
@@ -249,7 +249,25 @@ void Get_Encode_Config(cJSON *root)
     item = cJSON_GetObjectItem(sub_encode, "Profile");
     if (item)
     {
-        encode_config.h264_Profile = item->valueint;
+        if (item->valueint >= 66)
+        {
+            encode_config.h264_Profile = item->valueint;
+        }
+        else
+        {
+            switch(item->valueint)
+            {
+            case 0:
+                encode_config.h264_Profile = 66;
+                break;
+            case 1:
+                encode_config.h264_Profile = 77;
+                break;
+            default:
+                encode_config.h264_Profile = 100;
+                break;
+            }
+        }
     }
     else
     {

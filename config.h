@@ -15,7 +15,7 @@ typedef struct
 typedef struct
 {
     int h264_Maxqp;                 // 0~51
-    int h264_Minqp;
+    int h264_Minqp;                 // 0~39
     int h264_Level;                 // 10~51
     int h264_Profile;               // 66:VENC_H264ProfileBaseline 77:VENC_H264ProfileMain 100:VENC_H264ProfileHigh
     int h264_EntropyCodingCABAC;    // 0:CAVLC 1:CABAC
