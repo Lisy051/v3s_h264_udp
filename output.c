@@ -65,19 +65,76 @@ int Output_Init(void)
 
 int Output(char *buf, int len)
 {
+    static char tx_buffer[65535] = { 0 };
+
     if (udp_out > 0)
     {
-        int data_len = len;
-        char *pdata = buf;
-        while (data_len > output_contig.pack_len)
+        uint8_t prefix = 4;
+        int data_len = len - prefix;
+        char *pdata = buf + prefix;
+        
+        if (data_len > output_contig.pack_len + prefix)
         {
-            sendto(udp_out, pdata, output_contig.pack_len, 0, (struct sockaddr *)&address, sizeof(address));
-            data_len -= output_contig.pack_len;
-            pdata += output_contig.pack_len;
+            // Get NAL type
+            uint8_t nal_type_avc = pdata[0] & 0x1F;
+            uint8_t nal_type_hevc = (pdata[0] >> 1) & 0x3F;
+            uint8_t nal_bits_avc = pdata[0] & 0xE0;
+            uint8_t nal_bits_hevc = pdata[0] & 0x81;
+
+            bool start_bit = true;
+            uint8_t tx_size = 2;
+
+            while (data_len)
+            {
+                uint32_t chunk_size = data_len > output_contig.pack_len ? output_contig.pack_len : data_len;
+                if (nal_type_avc == 1 || nal_type_avc == 5)
+                {
+                    tx_buffer[0] = nal_bits_avc | 28;
+                    tx_buffer[1] = nal_type_avc;
+
+                    if (start_bit) 
+                    {
+                        pdata++;
+                        data_len--;
+                        tx_buffer[1] = 0x80 | nal_type_avc;
+                        start_bit = false;
+                    }
+
+                    if (chunk_size == output_contig.pack_len) 
+                    {
+                        tx_buffer[1] |= 0x40;
+                    }
+                }
+
+                if (nal_type_hevc == 1 || nal_type_hevc == 19) 
+                {
+                    tx_buffer[0] = nal_bits_hevc | 49 << 1;
+                    tx_buffer[1] = 1;
+                    tx_buffer[2] = nal_type_hevc;
+                    tx_size = 3;
+
+                    if (start_bit) 
+                    {
+                        pdata += 2;
+                        data_len -= 2;
+                        tx_buffer[2] = 0x80 | nal_type_hevc;
+                        start_bit = false;
+                    }
+
+                    if (chunk_size == data_len) 
+                    {
+                        tx_buffer[2] |= 0x40;
+                    }
+                }
+                memcpy(tx_buffer + tx_size, pdata, chunk_size + tx_size);
+                sendto(udp_out, tx_buffer, chunk_size + tx_size, 0, (struct sockaddr *)&address, sizeof(address));
+                pdata += chunk_size;
+                data_len -= chunk_size;
+            }
         }
-        if (data_len > 0)
+        else
         {
-            sendto(udp_out, pdata, data_len, 0, (struct sockaddr *)&address, sizeof(address));
+            sendto(udp_out, buf, len, 0, (struct sockaddr *)&address, sizeof(address));
         }
     }
 
