@@ -47,6 +47,7 @@ void Config_Reset(void)
     cJSON_AddItemToObject(sub_output, "enable_udp", cJSON_CreateBool(0));
     cJSON_AddItemToObject(sub_output, "enable_file", cJSON_CreateBool(1));
     cJSON_AddItemToObject(sub_output, "enable_pipe", cJSON_CreateBool(0));
+    cJSON_AddItemToObject(sub_output, "enable_rtp", cJSON_CreateBool(0));
     cJSON_AddItemToObject(sub_output, "pack_len", cJSON_CreateNumber(1024));
     cJSON_AddItemToObject(sub_output, "udp_port", cJSON_CreateNumber(5600));
     cJSON_AddItemToObject(sub_output, "udp_addr", cJSON_CreateString("127.0.0.1"));
@@ -328,6 +329,16 @@ void Get_Output_Config(cJSON *root)
     else
     {
         fprintf(stderr, "enable_pipe not find\n");
+        Config_Reset();
+    }
+    item = cJSON_GetObjectItem(sub_output, "enable_rtp");
+    if (item)
+    {
+        output_contig.enable_rtp = (item->type == cJSON_True);
+    }
+    else
+    {
+        fprintf(stderr, "enable_rtp not find\n");
         Config_Reset();
     }
     item = cJSON_GetObjectItem(sub_output, "pack_len");

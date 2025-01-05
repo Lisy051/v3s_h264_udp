@@ -31,7 +31,8 @@ typedef struct
     bool enable_udp;
     bool enable_pipe;
     bool enable_file;
-
+    bool enable_rtp;
+    
     int pack_len;
 
     int udp_port;
