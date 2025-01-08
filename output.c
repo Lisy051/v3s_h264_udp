@@ -72,7 +72,7 @@ int Output(char *buf, int len)
     {
         if (output_contig.enable_rtp)
         {
-            send_rtp_pack(buf, len, udp_out, (struct sockaddr *)&address, output_contig.pack_len);
+            send_rtp_pack(buf, len, udp_out, (struct sockaddr *)&address, sizeof(address), output_contig.pack_len);
         }
         else
         {

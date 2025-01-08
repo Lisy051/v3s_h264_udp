@@ -1,11 +1,13 @@
 #include "rtp.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <endian.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #define RTP_HEADER_LEN  12
 
@@ -18,6 +20,8 @@ struct RTPMsg {
     uint8_t tx_buffer[65535];
 };
 
+static struct RTPMsg rtp_pack;
+
 /**
  * @brief 发送rtp数据包
  * 
@@ -28,10 +32,9 @@ struct RTPMsg {
  * @param max_size          单包最大长度
  */
 void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
-    struct sockaddr* dst_address, uint32_t max_size)
+    struct sockaddr* dst_address, int addr_len, uint32_t max_size)
 {
     static int rtp_sequence = 0;
-    struct RTPMsg rtp_pack;
     memset(&rtp_pack, 0 , sizeof(rtp_pack));
 	rtp_pack.version = 0x80;
 	rtp_pack.payload_type = 0x60;
@@ -101,11 +104,12 @@ void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
                     rtp_pack.tx_buffer[2] &= 0x3F;
                 }
             }
-
-            memcpy(rtp_pack.tx_buffer + tx_size, pack_data, chunk_size + tx_size);
-            sendto(socket_handle, &rtp_pack.version, chunk_size + tx_size + RTP_HEADER_LEN, 
-                0, (struct sockaddr *)&dst_address, sizeof(dst_address));
-
+            uint32_t data_len = chunk_size + tx_size;
+            memcpy(rtp_pack.tx_buffer + tx_size, pack_data, data_len);
+            data_len += RTP_HEADER_LEN;
+            int ret = sendto(socket_handle, &rtp_pack.version, data_len,
+                             0, dst_address, addr_len);
+            //fprintf(stderr, "rtp send len %d, %d\n",data_len, ret);
             pack_data += chunk_size;
             pack_size -= chunk_size;
         }
@@ -113,7 +117,8 @@ void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
     else
     {
         memcpy(rtp_pack.tx_buffer, pack_data, pack_size);
-        sendto(socket_handle, &rtp_pack.version, pack_size + RTP_HEADER_LEN, 
-                0, (struct sockaddr *)&dst_address, sizeof(dst_address));
+        int ret = sendto(socket_handle, &rtp_pack.version, pack_size + RTP_HEADER_LEN,
+                         0, dst_address, addr_len);
+        //fprintf(stderr, "rtp send len %d, %d\n",pack_size + RTP_HEADER_LEN, ret);
     }
 }

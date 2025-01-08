@@ -5,6 +5,6 @@
 #include <arpa/inet.h>
 
 void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
-    struct sockaddr* dst_address, uint32_t max_size);
+    struct sockaddr* dst_address, int addr_len, uint32_t max_size);
 
 #endif
