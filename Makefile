@@ -14,13 +14,13 @@ LDLIBS = -lVE -lvencoder -lMemAdapter
 
 all: main
 
-main: config.h output.h h264.h cam.h cam.o config.o h264.o cJSON.o output.o
+main: config.h output.h h264.h cam.h cam.o config.o h264.o cJSON.o output.o rtp.o
 cJSON.o: cJSON.h
 h264.o: config.h output.h config.o output.o
 cam.o: config.h config.o
-output.o: config.h output.h config.o
+output.o: config.h output.h rtp.h config.o rtp.o
 config.o: config.h cJSON.h cJSON.o
-
+rtp.o: rtp.h
 
 clean:
 	rm -f $(wildcard *.o)

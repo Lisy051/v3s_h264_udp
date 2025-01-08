@@ -1,5 +1,6 @@
 #include "output.h"
 #include "config.h"
+#include "rtp.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -44,7 +45,7 @@ int Output_Init(void)
         }
     }
 
-    if (output_contig.enable_udp)
+    if (output_contig.enable_udp || output_contig.enable_rtp)
     {
 	    bzero(&address,sizeof(address));
 	    address.sin_family=AF_INET;
@@ -52,6 +53,8 @@ int Output_Init(void)
 	    address.sin_port=htons(output_contig.udp_port);
 
         udp_out = socket(AF_INET,SOCK_DGRAM, 0);//IPV4  SOCK_DGRAM 数据报套接字（UDP协议）
+        if (output_contig.enable_rtp)
+            output_contig.enable_udp = true;
     }
 
     if (output_contig.enable_pipe ||
@@ -67,17 +70,24 @@ int Output(char *buf, int len)
 {
     if (udp_out > 0)
     {
-        int data_len = len;
-        char *pdata = buf;
-        while (data_len > output_contig.pack_len)
+        if (output_contig.enable_rtp)
         {
-            sendto(udp_out, pdata, output_contig.pack_len, 0, (struct sockaddr *)&address, sizeof(address));
-            data_len -= output_contig.pack_len;
-            pdata += output_contig.pack_len;
+            send_rtp_pack(buf, len, udp_out, (struct sockaddr *)&address, output_contig.pack_len);
         }
-        if (data_len > 0)
+        else
         {
-            sendto(udp_out, pdata, data_len, 0, (struct sockaddr *)&address, sizeof(address));
+            int data_len = len;
+            char *pdata = buf;
+            while (data_len > output_contig.pack_len)
+            {
+                sendto(udp_out, pdata, output_contig.pack_len, 0, (struct sockaddr *)&address, sizeof(address));
+                data_len -= output_contig.pack_len;
+                pdata += output_contig.pack_len;
+            }
+            if (data_len > 0)
+            {
+                sendto(udp_out, pdata, data_len, 0, (struct sockaddr *)&address, sizeof(address));
+            }
         }
     }
 
