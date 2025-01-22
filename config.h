@@ -23,6 +23,7 @@ typedef struct
     int h264_MaxKeyInterval;
     int h264_Bitrate;
     int h264_BlockNumber;
+    int rtp_tick;
 }encode_config_t;
 
 

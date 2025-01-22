@@ -32,17 +32,22 @@ static struct RTPMsg rtp_pack;
  * @param max_size          单包最大长度
  */
 void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
-    struct sockaddr* dst_address, int addr_len, uint32_t max_size)
+    struct sockaddr* dst_address, int addr_len, uint32_t max_size, uint32_t tick)
 {
-    static int rtp_sequence = 0;
+    static uint16_t rtp_sequence = 0;
+    static uint32_t rtp_timestamp = 0;
+
+    rtp_timestamp += tick;
+
     memset(&rtp_pack, 0 , sizeof(rtp_pack));
 	rtp_pack.version = 0x80;
 	rtp_pack.payload_type = 0x60;
-	rtp_pack.sequence = htobe16(rtp_sequence++);
-	rtp_pack.timestamp = 0;
+	rtp_pack.timestamp = htobe32(rtp_timestamp);
 	rtp_pack.ssrc_id = 0xDEADBEEF;
 
     uint8_t prefix = 4;
+    if (pack_data[2] == 0x01)
+        prefix = 3;
     pack_data += prefix;
     pack_size -= prefix;
 
@@ -104,19 +109,22 @@ void send_rtp_pack(uint8_t* pack_data, uint32_t pack_size, int socket_handle,
                     rtp_pack.tx_buffer[2] &= 0x3F;
                 }
             }
-            uint32_t data_len = chunk_size + tx_size;
-            memcpy(rtp_pack.tx_buffer + tx_size, pack_data, data_len);
-            data_len += RTP_HEADER_LEN;
-            int ret = sendto(socket_handle, &rtp_pack.version, data_len,
-                             0, dst_address, addr_len);
-            //fprintf(stderr, "rtp send len %d, %d\n",data_len, ret);
+
+            memcpy(rtp_pack.tx_buffer + tx_size, pack_data, chunk_size);
+	        rtp_pack.sequence = htobe16(rtp_sequence++);
             pack_data += chunk_size;
             pack_size -= chunk_size;
+            if (pack_size == 0)
+                rtp_pack.payload_type = 0xe0;
+            int ret = sendto(socket_handle, &rtp_pack.version, chunk_size + tx_size + RTP_HEADER_LEN,
+                             0, dst_address, addr_len);
+            //fprintf(stderr, "rtp send len %d, %d\n",data_len, ret);
         }
     }
     else
     {
         memcpy(rtp_pack.tx_buffer, pack_data, pack_size);
+        rtp_pack.sequence = htobe16(rtp_sequence++);
         int ret = sendto(socket_handle, &rtp_pack.version, pack_size + RTP_HEADER_LEN,
                          0, dst_address, addr_len);
         //fprintf(stderr, "rtp send len %d, %d\n",pack_size + RTP_HEADER_LEN, ret);

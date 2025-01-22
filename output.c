@@ -54,7 +54,10 @@ int Output_Init(void)
 
         udp_out = socket(AF_INET,SOCK_DGRAM, 0);//IPV4  SOCK_DGRAM 数据报套接字（UDP协议）
         if (output_contig.enable_rtp)
+        {
             output_contig.enable_udp = true;
+            encode_config.rtp_tick = 90000 / camera_config.fps;
+        }
     }
 
     if (output_contig.enable_pipe ||
@@ -72,7 +75,7 @@ int Output(char *buf, int len)
     {
         if (output_contig.enable_rtp)
         {
-            send_rtp_pack(buf, len, udp_out, (struct sockaddr *)&address, sizeof(address), output_contig.pack_len);
+            send_rtp_pack(buf, len, udp_out, (struct sockaddr *)&address, sizeof(address), output_contig.pack_len, encode_config.rtp_tick);
         }
         else
         {
